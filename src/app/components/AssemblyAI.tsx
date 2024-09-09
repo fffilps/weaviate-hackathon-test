@@ -86,11 +86,11 @@ const TranscriptionForm: React.FC = () => {
 
             // Assuming response contains utterances
             const utterances = response.utterances || []; // Ensure utterances is an array
-            for (let utterance of utterances) {
+            for (const utterance of utterances) { // Changed 'let' to 'const'
               console.log(`Speaker ${utterance.speaker}: ${utterance.text}`)
                 setSpeakers((prev) => [...prev, `Speaker ${utterance.speaker}: ${utterance.text}`]);
             }
-            for (let result of response.auto_highlights_result?.results || []) {
+            for (const result of response.auto_highlights_result?.results || []) {
               console.log(`Highlight: ${result.text}, Count: ${result.count}, Rank: ${result.rank}`)
               setHighlights(
                 (prev) => [...prev, `Highlight: ${result.text}, Count: ${result.count}, Rank: ${result.rank}`]

@@ -2,9 +2,9 @@ import Image from 'next/image'
 import React from 'react'
 
 
-type Props = {}
 
-const ChatModel = (props: Props) => {
+
+const ChatModel = () => {
   return (
     <div>
         <>
