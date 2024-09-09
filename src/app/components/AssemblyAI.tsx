@@ -8,21 +8,21 @@ const client = new AssemblyAI({
 });
 
 
-interface TranslationResponse {
-  translatedText: string;
-}
+// interface TranslationResponse {
+//   translatedText: string;
+// }
 
 const TranscriptionForm: React.FC = () => {
     const [fileUrl, setFileUrl] = useState<string>('');
     const [file, setFile] = useState<File | null>(null); // New state for file upload
     const [transcript, setTranscript] = useState<string>('');
-    const [translation, setTranslation] = useState<string>('');
+    // const [translation, setTranslation] = useState<string>('');
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
     const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
     const [recordingTime, setRecordingTime] = useState<number>(0); // State for recording time
     const [isRecording, setIsRecording] = useState<boolean>(false); // State to track recording status
-    const [speakers, setSpeakers] = useState([])
-    const [highlights, setHighlights] = useState([])
+    const [speakers, setSpeakers] = useState<string[]>([]); // Specify type as string[]
+    const [highlights, setHighlights] = useState<string[]>([]); // Specify type as string[]
 
     const startRecording = async () => {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -70,12 +70,10 @@ const TranscriptionForm: React.FC = () => {
 
         let data;
         if (file) {
-            const formData = new FormData();
-            formData.append('file', file);
-            data = { audio: formData,
+            data = { audio: file, // Use File object directly
               speaker_labels: true,
               auto_highlights: true
-             }; // Use FormData for file upload
+             }; // Use File for file upload
         } else {
             data = { audio: fileUrl,
               speaker_labels: true,
@@ -104,32 +102,32 @@ const TranscriptionForm: React.FC = () => {
         }
     };
 
-    const translateText = async (text: string, targetLanguage: string): Promise<string> => {
-        try {
-          const res = await fetch("https://libretranslate.com/translate", {
-            method: "POST",
-            body: JSON.stringify({
-              q: text,
-              source: "en",
-              target: targetLanguage,
-            }),
-            headers: { "Content-Type": "application/json" }
-          });
+    // const translateText = async (text: string, targetLanguage: string): Promise<string> => {
+    //     try {
+    //       const res = await fetch("https://libretranslate.com/translate", {
+    //         method: "POST",
+    //         body: JSON.stringify({
+    //           q: text,
+    //           source: "en",
+    //           target: targetLanguage,
+    //         }),
+    //         headers: { "Content-Type": "application/json" }
+    //       });
     
-          const data: TranslationResponse = await res.json();
-          return data.translatedText;
-        } catch (error) {
-          console.error("Translation error:", error);
-          return "Error translating text";
-        }
-    };
+    //       const data: TranslationResponse = await res.json();
+    //       return data.translatedText;
+    //     } catch (error) {
+    //       console.error("Translation error:", error);
+    //       return "Error translating text";
+    //     }
+    // };
     
-    const handleTranslation = async () => {
-        if (transcript) {
-            const result = await translateText(transcript, "es"); // Translating to Spanish as an example
-            setTranslation(result);
-        }
-    };
+    // const handleTranslation = async () => {
+    //     if (transcript) {
+    //         const result = await translateText(transcript, "es"); // Translating to Spanish as an example
+    //         setTranslation(result);
+    //     }
+    // };
   
     return (
         <div className='w-full h-full flex flex-col justify-center items-center gap-2'>
@@ -192,12 +190,12 @@ const TranscriptionForm: React.FC = () => {
             </div>
           )}
 
-          {translation && (
+          {/* {translation && (
             <div className='flex flex-col py-2 w-full gap-2'>
               <h2 className='font-semibold'>Translation:</h2>
               <p>{translation}</p>
             </div>
-          )}
+          )} */}
           </div>
         </div>
     );
