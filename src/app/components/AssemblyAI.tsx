@@ -17,46 +17,46 @@ const TranscriptionForm: React.FC = () => {
     const [file, setFile] = useState<File | null>(null); // New state for file upload
     const [transcript, setTranscript] = useState<string>('');
     // const [translation, setTranslation] = useState<string>('');
-    const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-    const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
-    const [recordingTime, setRecordingTime] = useState<number>(0); // State for recording time
-    const [isRecording, setIsRecording] = useState<boolean>(false); // State to track recording status
-    const [speakers, setSpeakers] = useState<string[]>([]); // Specify type as string[]
-    const [highlights, setHighlights] = useState<string[]>([]); // Specify type as string[]
+    // const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+    // const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
+    // const [recordingTime, setRecordingTime] = useState<number>(0); // State for recording time
+    // const [isRecording, setIsRecording] = useState<boolean>(false); // State to track recording status
+    // const [speakers, setSpeakers] = useState<string[]>([]); // Specify type as string[]
+    // const [highlights, setHighlights] = useState<string[]>([]); // Specify type as string[]
 
-    const startRecording = async () => {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const recorder = new MediaRecorder(stream);
-        recorder.ondataavailable = (event) => {
-            if (event.data.size > 0) {
-                setRecordedChunks((prev) => [...prev, event.data]);
-            }
-        };
-        recorder.start();
-        setMediaRecorder(recorder);
-        setIsRecording(true);
+    // const startRecording = async () => {
+    //     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    //     const recorder = new MediaRecorder(stream);
+    //     recorder.ondataavailable = (event) => {
+    //         if (event.data.size > 0) {
+    //             setRecordedChunks((prev) => [...prev, event.data]);
+    //         }
+    //     };
+    //     recorder.start();
+    //     setMediaRecorder(recorder);
+    //     setIsRecording(true);
         
-        // Start timer
-        const timer = setInterval(() => {
-            setRecordingTime((prev) => prev + 1);
-        }, 1000);
+    //     // Start timer
+    //     const timer = setInterval(() => {
+    //         setRecordingTime((prev) => prev + 1);
+    //     }, 1000);
 
-        // Stop timer when recording stops
-        recorder.onstop = () => {
-            clearInterval(timer);
-            setRecordingTime(0); // Reset recording time
-            setIsRecording(false);
-        };
-    };
+    //     // Stop timer when recording stops
+    //     recorder.onstop = () => {
+    //         clearInterval(timer);
+    //         setRecordingTime(0); // Reset recording time
+    //         setIsRecording(false);
+    //     };
+    // };
 
-    const stopRecording = () => {
-        if (mediaRecorder) {
-            mediaRecorder.stop();
-            const audioBlob = new Blob(recordedChunks, { type: 'audio/mp3' });
-            setFile(new File([audioBlob], 'recording.mp3', { type: 'audio/mp3' }));
-            setRecordedChunks([]); // Clear recorded chunks
-        }
-    };
+    // const stopRecording = () => {
+    //     if (mediaRecorder) {
+    //         mediaRecorder.stop();
+    //         const audioBlob = new Blob(recordedChunks, { type: 'audio/mp3' });
+    //         setFile(new File([audioBlob], 'recording.mp3', { type: 'audio/mp3' }));
+    //         setRecordedChunks([]); // Clear recorded chunks
+    //     }
+    // };
 
     const handleTranscribe = async () => {
         if (!file && !fileUrl) {
@@ -84,18 +84,29 @@ const TranscriptionForm: React.FC = () => {
             const response = await client.transcripts.transcribe(data);
             setTranscript(response.text || '');
 
+
             // Assuming response contains utterances
-            const utterances = response.utterances || []; // Ensure utterances is an array
-            for (const utterance of utterances) { // Changed 'let' to 'const'
-              console.log(`Speaker ${utterance.speaker}: ${utterance.text}`)
-                setSpeakers((prev) => [...prev, `Speaker ${utterance.speaker}: ${utterance.text}`]);
-            }
-            for (const result of response.auto_highlights_result?.results || []) {
-              console.log(`Highlight: ${result.text}, Count: ${result.count}, Rank: ${result.rank}`)
-              setHighlights(
-                (prev) => [...prev, `Highlight: ${result.text}, Count: ${result.count}, Rank: ${result.rank}`]
-              );
-            }
+            // const utterances = response.utterances || []; // Ensure utterances is an array
+            // for (const utterance of utterances) { // Changed 'let' to 'const'
+            //     setSpeakers((prev) => [...prev, `Speaker ${utterance.speaker}: ${utterance.text}`]);
+            // }
+            // for (const result of response.auto_highlights_result?.results || []) {
+
+            //   setHighlights(
+            //     (prev) => [...prev, `Highlight: ${result.text}, Count: ${result.count}, Rank: ${result.rank}`]
+            //   );
+            // }
+
+            // Send the response to the specified URL
+            await fetch('http://127.0.0.1:8000/speechprocessing', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                  transcript: response.text || '',
+              }),
+          });
             
         } catch (error) {
             console.error('Error transcribing audio:', error);
@@ -145,12 +156,15 @@ const TranscriptionForm: React.FC = () => {
             onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)} // Set file state
             className='bg-gray-200 p-4'
           />
-          <button onClick={startRecording} className='bg-blue-300 px-4 py-2 rounded-lg'>Start Recording</button>
+          {/* <button onClick={startRecording} className='bg-blue-300 px-4 py-2 rounded-lg'>Start Recording</button>
           <button onClick={stopRecording} className='bg-red-300 px-4 py-2 rounded-lg'>Stop Recording</button>
-          {isRecording && <p>Recording Time: {recordingTime} seconds</p>} {/* Display recording time */}
+          {isRecording && <p>Recording Time: {recordingTime} seconds</p>} Display recording time */}
           <button onClick={handleTranscribe}
           className='bg-green-300 px-4 py-2 rounded-lg'>Transcribe</button>
           <div className='flex flex-col w-full py-2'>
+
+
+
 
           {transcript && (
             <div>
@@ -164,31 +178,32 @@ const TranscriptionForm: React.FC = () => {
               </div> */}
             </div>
           )}
-          {speakers && (
+          
+          {/* {speakers && (
             <div>
               <div className='flex flex-col py-2 w-full gap-2'>
               <h2 className='font-semibold'>Speakers:</h2>
               <p>{speakers}</p>
               </div>
-              {/* <div>
+              <div>
               <button onClick={handleTranslation}
                 className='bg-green-300 px-4 py-2 rounded-lg'>Translate to Spanish</button>
-              </div> */}
+              </div>
             </div>
-          )}
+          )} */}
           
-          {highlights && (
+          {/* {highlights && (
             <div>
               <div className='flex flex-col py-2 w-full gap-2'>
               <h2 className='font-semibold'>Highlights:</h2>
               <p>{highlights}</p>
               </div>
-              {/* <div>
+              <div>
               <button onClick={handleTranslation}
                 className='bg-green-300 px-4 py-2 rounded-lg'>Translate to Spanish</button>
-              </div> */}
+              </div>
             </div>
-          )}
+          )} */}
 
           {/* {translation && (
             <div className='flex flex-col py-2 w-full gap-2'>
