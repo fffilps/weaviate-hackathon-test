@@ -1,219 +1,221 @@
 'use client'
-
-import { AssemblyAI } from 'assemblyai';
 import React, { useState } from 'react';
+import { AssemblyAI } from 'assemblyai';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
+
+// Define types for the quiz data
+interface QuizQuestion {
+  question: string;
+  options: string[];
+}
+
+interface QuizData {
+  topic: string;
+  questions: QuizQuestion[];
+}
 
 const client = new AssemblyAI({
   apiKey: '3c558628c055461e86033df7b79765c4',
 });
 
-
-// interface TranslationResponse {
-//   translatedText: string;
-// }
-
 const TranscriptionForm: React.FC = () => {
-    const [fileUrl, setFileUrl] = useState<string>('');
-    const [file, setFile] = useState<File | null>(null); // New state for file upload
-    const [transcript, setTranscript] = useState<string>('');
-    // const [translation, setTranslation] = useState<string>('');
-    // const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-    // const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
-    // const [recordingTime, setRecordingTime] = useState<number>(0); // State for recording time
-    // const [isRecording, setIsRecording] = useState<boolean>(false); // State to track recording status
-    // const [speakers, setSpeakers] = useState<string[]>([]); // Specify type as string[]
-    // const [highlights, setHighlights] = useState<string[]>([]); // Specify type as string[]
+  const [fileUrl, setFileUrl] = useState<string>('');
+  const [file, setFile] = useState<File | null>(null);
+  const [transcript, setTranscript] = useState<string>('');
+  const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState<boolean>(false);
+  const [quizData, setQuizData] = useState<QuizData | null>(null);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
 
-    // const startRecording = async () => {
-    //     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    //     const recorder = new MediaRecorder(stream);
-    //     recorder.ondataavailable = (event) => {
-    //         if (event.data.size > 0) {
-    //             setRecordedChunks((prev) => [...prev, event.data]);
-    //         }
-    //     };
-    //     recorder.start();
-    //     setMediaRecorder(recorder);
-    //     setIsRecording(true);
-        
-    //     // Start timer
-    //     const timer = setInterval(() => {
-    //         setRecordingTime((prev) => prev + 1);
-    //     }, 1000);
+  const handleTranscribe = async () => {
+    if (!file && !fileUrl) {
+      console.error("Please provide either a file or a URL.");
+      return;
+    }
+    if (file && fileUrl) {
+      console.error("Please provide either a file or a URL, not both.");
+      return;
+    }
 
-    //     // Stop timer when recording stops
-    //     recorder.onstop = () => {
-    //         clearInterval(timer);
-    //         setRecordingTime(0); // Reset recording time
-    //         setIsRecording(false);
-    //     };
-    // };
+    setIsTranscribing(true);
+    setTranscript('');
+    setQuizData(null);
 
-    // const stopRecording = () => {
-    //     if (mediaRecorder) {
-    //         mediaRecorder.stop();
-    //         const audioBlob = new Blob(recordedChunks, { type: 'audio/mp3' });
-    //         setFile(new File([audioBlob], 'recording.mp3', { type: 'audio/mp3' }));
-    //         setRecordedChunks([]); // Clear recorded chunks
-    //     }
-    // };
+    let transcriptionData: { audio: string | File; speaker_labels: boolean; auto_highlights: true };
+    if (file) {
+      transcriptionData = {
+        audio: file,
+        speaker_labels: true,
+        auto_highlights: true,
+      };
+    } else {
+      transcriptionData = { audio: fileUrl, speaker_labels: true, auto_highlights: true };
+    }
 
-    const handleTranscribe = async () => {
-        if (!file && !fileUrl) {
-            console.error('Please provide either a file or a URL.');
-            return; // Exit if neither is provided
-        }
-        if (file && fileUrl) {
-            console.error('Please provide either a file or a URL, not both.');
-            return; // Exit if both are provided
-        }
+    try {
+      const response = await client.transcripts.transcribe(transcriptionData);
+      setTranscript(response.text || "");
+    } catch (error) {
+      console.error("Error transcribing audio:", error);
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
 
-        let data;
-        if (file) {
-            data = { audio: file, // Use File object directly
-              speaker_labels: true,
-              auto_highlights: true
-             }; // Use File for file upload
-        } else {
-            data = { audio: fileUrl,
-              speaker_labels: true,
-              auto_highlights: true
-             }; // Use URL if no file is uploaded
-        }
-        try {
-            const response = await client.transcripts.transcribe(data);
-            setTranscript(response.text || '');
+  const handleGenerateQuiz = async () => {
+    if (!transcript) {
+      console.error("Please transcribe audio first.");
+      return;
+    }
 
+    setIsGeneratingQuiz(true);
 
-            // Assuming response contains utterances
-            // const utterances = response.utterances || []; // Ensure utterances is an array
-            // for (const utterance of utterances) { // Changed 'let' to 'const'
-            //     setSpeakers((prev) => [...prev, `Speaker ${utterance.speaker}: ${utterance.text}`]);
-            // }
-            // for (const result of response.auto_highlights_result?.results || []) {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/speechprocessing", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ transcript }),
+      });
 
-            //   setHighlights(
-            //     (prev) => [...prev, `Highlight: ${result.text}, Count: ${result.count}, Rank: ${result.rank}`]
-            //   );
-            // }
+      if (!response.ok) {
+        throw new Error('Failed to generate quiz');
+      }
 
-            // Send the response to the specified URL
-            await fetch('http://127.0.0.1:8000/speechprocessing', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                  transcript: response.text || '',
-              }),
-          });
-            
-        } catch (error) {
-            console.error('Error transcribing audio:', error);
-        }
-    };
+      const quiz: QuizData = await response.json();
+      setQuizData(quiz);
+    } catch (error) {
+      console.error("Error generating quiz:", error);
+    } finally {
+      setIsGeneratingQuiz(false);
+    }
+  };
 
-    // const translateText = async (text: string, targetLanguage: string): Promise<string> => {
-    //     try {
-    //       const res = await fetch("https://libretranslate.com/translate", {
-    //         method: "POST",
-    //         body: JSON.stringify({
-    //           q: text,
-    //           source: "en",
-    //           target: targetLanguage,
-    //         }),
-    //         headers: { "Content-Type": "application/json" }
-    //       });
-    
-    //       const data: TranslationResponse = await res.json();
-    //       return data.translatedText;
-    //     } catch (error) {
-    //       console.error("Translation error:", error);
-    //       return "Error translating text";
-    //     }
-    // };
-    
-    // const handleTranslation = async () => {
-    //     if (transcript) {
-    //         const result = await translateText(transcript, "es"); // Translating to Spanish as an example
-    //         setTranslation(result);
-    //     }
-    // };
-  
-    return (
-        <div className='w-full h-full flex flex-col justify-center items-center gap-2'>
-          <h1>Audio Transcription and Translation</h1>
-          <input
-            type="text"
-            placeholder="Enter audio file URL"
-            value={fileUrl}
-            onChange={(e) => setFileUrl(e.target.value)}
-            className='bg-gray-200 p-4'
-          />
-          <input
-            type="file"
-            accept="audio/*" // Accept audio files
-            onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)} // Set file state
-            className='bg-gray-200 p-4'
-          />
-          {/* <button onClick={startRecording} className='bg-blue-300 px-4 py-2 rounded-lg'>Start Recording</button>
-          <button onClick={stopRecording} className='bg-red-300 px-4 py-2 rounded-lg'>Stop Recording</button>
-          {isRecording && <p>Recording Time: {recordingTime} seconds</p>} Display recording time */}
-          <button onClick={handleTranscribe}
-          className='bg-green-300 px-4 py-2 rounded-lg'>Transcribe</button>
-          <div className='flex flex-col w-full py-2'>
+  const handleAnswerSelect = (questionIndex: number, optionIndex: number) => {
+    setSelectedAnswers(prev => ({
+      ...prev,
+      [questionIndex]: optionIndex
+    }));
+  };
 
-
-
+  return (
+    <div className="w-full min-h-screen bg-green-50 p-8">
+      <Card className="max-w-3xl mx-auto bg-white shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold text-green-700">Audio Transcription and Quiz Generation</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <Input
+              type="text"
+              placeholder="Enter audio file URL"
+              value={fileUrl}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFileUrl(e.target.value)}
+              className="w-full"
+              disabled={isTranscribing}
+            />
+            <Input
+              type="file"
+              accept="audio/*"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFile(e.target.files ? e.target.files[0] : null)}
+              className="w-full"
+              disabled={isTranscribing}
+            />
+            <Button 
+              onClick={handleTranscribe} 
+              className="bg-green-500 hover:bg-green-600 text-white w-full"
+              disabled={isTranscribing}
+            >
+              {isTranscribing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Transcribing...
+                </>
+              ) : (
+                'Transcribe'
+              )}
+            </Button>
+          </div>
 
           {transcript && (
-            <div>
-              <div className='flex flex-col py-2 w-full gap-2'>
-              <h2 className='font-semibold'>Transcript:</h2>
-              <p>{transcript}</p>
-              </div>
-              {/* <div>
-              <button onClick={handleTranslation}
-                className='bg-green-300 px-4 py-2 rounded-lg'>Translate to Spanish</button>
-              </div> */}
-            </div>
+            <Card className="bg-green-50">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-green-700">Transcript</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-green-800">{transcript}</p>
+                <Button 
+                  onClick={handleGenerateQuiz} 
+                  className="bg-green-500 hover:bg-green-600 text-white mt-4"
+                  disabled={isGeneratingQuiz}
+                >
+                  {isGeneratingQuiz ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating Quiz...
+                    </>
+                  ) : (
+                    'Generate Quiz'
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
           )}
-          
-          {/* {speakers && (
-            <div>
-              <div className='flex flex-col py-2 w-full gap-2'>
-              <h2 className='font-semibold'>Speakers:</h2>
-              <p>{speakers}</p>
-              </div>
-              <div>
-              <button onClick={handleTranslation}
-                className='bg-green-300 px-4 py-2 rounded-lg'>Translate to Spanish</button>
-              </div>
-            </div>
-          )} */}
-          
-          {/* {highlights && (
-            <div>
-              <div className='flex flex-col py-2 w-full gap-2'>
-              <h2 className='font-semibold'>Highlights:</h2>
-              <p>{highlights}</p>
-              </div>
-              <div>
-              <button onClick={handleTranslation}
-                className='bg-green-300 px-4 py-2 rounded-lg'>Translate to Spanish</button>
-              </div>
-            </div>
-          )} */}
 
-          {/* {translation && (
-            <div className='flex flex-col py-2 w-full gap-2'>
-              <h2 className='font-semibold'>Translation:</h2>
-              <p>{translation}</p>
-            </div>
-          )} */}
-          </div>
-        </div>
-    );
+          {quizData && (
+            <Card className="bg-green-100">
+              <CardHeader>
+                <CardTitle className="text-2xl font-bold text-green-800">Quick Quiz</CardTitle>
+                <p className="text-lg italic text-green-700">
+                  <span className="font-semibold not-italic">Topic:</span> {quizData.topic}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {quizData.questions.map((question, qIndex) => (
+                  <Card key={`question-${qIndex}`} className="bg-white">
+                    <CardHeader>
+                      <CardTitle className="text-xl font-bold text-green-700">
+                        Question {qIndex + 1}:
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="mb-4 font-semibold">{question.question}</p>
+                      <RadioGroup
+                        value={selectedAnswers[qIndex]?.toString()}
+                        onValueChange={(value) => handleAnswerSelect(qIndex, parseInt(value))}
+                      >
+                        {question.options.map((option, oIndex) => (
+                          <div key={`option-${qIndex}-${oIndex}`} className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value={oIndex.toString()}
+                              id={`option-${qIndex}-${oIndex}`}
+                              className="text-green-500 focus:ring-green-500"
+                            />
+                            <Label
+                              htmlFor={`option-${qIndex}-${oIndex}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {option}
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </CardContent>
+                  </Card>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
 };
-    
+
 export default TranscriptionForm;
