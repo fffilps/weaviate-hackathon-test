@@ -1,12 +1,12 @@
-'use client'
-import React, { useState } from 'react';
-import { AssemblyAI } from 'assemblyai';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+"use client";
+import React, { useState } from "react";
+import { AssemblyAI } from "assemblyai";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 // Define types for the quiz data
 interface QuizQuestion {
@@ -20,17 +20,19 @@ interface QuizData {
 }
 
 const client = new AssemblyAI({
-  apiKey: '3c558628c055461e86033df7b79765c4',
+  apiKey: "3c558628c055461e86033df7b79765c4",
 });
 
 const TranscriptionForm: React.FC = () => {
-  const [fileUrl, setFileUrl] = useState<string>('');
+  const [fileUrl, setFileUrl] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
-  const [transcript, setTranscript] = useState<string>('');
+  const [transcript, setTranscript] = useState<string>("");
   const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState<boolean>(false);
   const [quizData, setQuizData] = useState<QuizData | null>(null);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<
+    Record<number, number>
+  >({});
 
   const handleTranscribe = async () => {
     if (!file && !fileUrl) {
@@ -43,10 +45,14 @@ const TranscriptionForm: React.FC = () => {
     }
 
     setIsTranscribing(true);
-    setTranscript('');
+    setTranscript("");
     setQuizData(null);
 
-    let transcriptionData: { audio: string | File; speaker_labels: boolean; auto_highlights: true };
+    let transcriptionData: {
+      audio: string | File;
+      speaker_labels: boolean;
+      auto_highlights: true;
+    };
     if (file) {
       transcriptionData = {
         audio: file,
@@ -54,7 +60,11 @@ const TranscriptionForm: React.FC = () => {
         auto_highlights: true,
       };
     } else {
-      transcriptionData = { audio: fileUrl, speaker_labels: true, auto_highlights: true };
+      transcriptionData = {
+        audio: fileUrl,
+        speaker_labels: true,
+        auto_highlights: true,
+      };
     }
 
     try {
@@ -85,11 +95,11 @@ const TranscriptionForm: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate quiz');
+        throw new Error("Failed to generate quiz");
       }
 
-      const quiz: QuizData = await response.json();
-      setQuizData(quiz);
+      const quiz: { message: QuizData } = await response.json();
+      setQuizData(quiz?.message);
     } catch (error) {
       console.error("Error generating quiz:", error);
     } finally {
@@ -98,9 +108,9 @@ const TranscriptionForm: React.FC = () => {
   };
 
   const handleAnswerSelect = (questionIndex: number, optionIndex: number) => {
-    setSelectedAnswers(prev => ({
+    setSelectedAnswers((prev) => ({
       ...prev,
-      [questionIndex]: optionIndex
+      [questionIndex]: optionIndex,
     }));
   };
 
@@ -108,7 +118,9 @@ const TranscriptionForm: React.FC = () => {
     <div className="w-full min-h-screen bg-green-50 p-8">
       <Card className="max-w-3xl mx-auto bg-white shadow-lg">
         <CardHeader>
-          <CardTitle className="text-3xl font-bold text-green-700">Audio Transcription and Quiz Generation</CardTitle>
+          <CardTitle className="text-3xl font-bold text-green-700">
+            Audio Transcription and Quiz Generation
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
@@ -116,19 +128,23 @@ const TranscriptionForm: React.FC = () => {
               type="text"
               placeholder="Enter audio file URL"
               value={fileUrl}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFileUrl(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setFileUrl(e.target.value)
+              }
               className="w-full"
               disabled={isTranscribing}
             />
             <Input
               type="file"
               accept="audio/*"
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFile(e.target.files ? e.target.files[0] : null)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setFile(e.target.files ? e.target.files[0] : null)
+              }
               className="w-full"
               disabled={isTranscribing}
             />
-            <Button 
-              onClick={handleTranscribe} 
+            <Button
+              onClick={handleTranscribe}
               className="bg-green-500 hover:bg-green-600 text-white w-full"
               disabled={isTranscribing}
             >
@@ -138,7 +154,7 @@ const TranscriptionForm: React.FC = () => {
                   Transcribing...
                 </>
               ) : (
-                'Transcribe'
+                "Transcribe"
               )}
             </Button>
           </div>
@@ -146,12 +162,14 @@ const TranscriptionForm: React.FC = () => {
           {transcript && (
             <Card className="bg-green-50">
               <CardHeader>
-                <CardTitle className="text-xl font-bold text-green-700">Transcript</CardTitle>
+                <CardTitle className="text-xl font-bold text-green-700">
+                  Transcript
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-green-800">{transcript}</p>
-                <Button 
-                  onClick={handleGenerateQuiz} 
+                <Button
+                  onClick={handleGenerateQuiz}
                   className="bg-green-500 hover:bg-green-600 text-white mt-4"
                   disabled={isGeneratingQuiz}
                 >
@@ -161,7 +179,7 @@ const TranscriptionForm: React.FC = () => {
                       Generating Quiz...
                     </>
                   ) : (
-                    'Generate Quiz'
+                    "Generate Quiz"
                   )}
                 </Button>
               </CardContent>
@@ -171,13 +189,16 @@ const TranscriptionForm: React.FC = () => {
           {quizData && (
             <Card className="bg-green-100">
               <CardHeader>
-                <CardTitle className="text-2xl font-bold text-green-800">Quick Quiz</CardTitle>
+                <CardTitle className="text-2xl font-bold text-green-800">
+                  Quick Quiz
+                </CardTitle>
                 <p className="text-lg italic text-green-700">
-                  <span className="font-semibold not-italic">Topic:</span> {quizData.topic}
+                  <span className="font-semibold not-italic">Topic:</span>{" "}
+                  {quizData.topic}
                 </p>
               </CardHeader>
               <CardContent className="space-y-6">
-                {quizData.questions.map((question, qIndex) => (
+                {quizData?.questions?.map((question, qIndex) => (
                   <Card key={`question-${qIndex}`} className="bg-white">
                     <CardHeader>
                       <CardTitle className="text-xl font-bold text-green-700">
@@ -188,10 +209,15 @@ const TranscriptionForm: React.FC = () => {
                       <p className="mb-4 font-semibold">{question.question}</p>
                       <RadioGroup
                         value={selectedAnswers[qIndex]?.toString()}
-                        onValueChange={(value) => handleAnswerSelect(qIndex, parseInt(value))}
+                        onValueChange={(value) =>
+                          handleAnswerSelect(qIndex, parseInt(value))
+                        }
                       >
                         {question.options.map((option, oIndex) => (
-                          <div key={`option-${qIndex}-${oIndex}`} className="flex items-center space-x-2">
+                          <div
+                            key={`option-${qIndex}-${oIndex}`}
+                            className="flex items-center space-x-2"
+                          >
                             <RadioGroupItem
                               value={oIndex.toString()}
                               id={`option-${qIndex}-${oIndex}`}
